@@ -51,13 +51,21 @@ Backbone.Validation = (function(_){
   //       'address.street': 'Street',
   //       'address.zip': 1234
   //     };
-  var flatten = function (obj, into, prefix) {
+  //
+  /*
+   * Note:  We have decided to remove the flattening capabilities of the Backbone.Validation.  The
+   *        reason we chose to do this, is if you would be adding a validation for a nested object,
+   *        the functionality would not allow this.  Initially we patched this to also exclude Array
+   *        objects, but then we found that we just shouldn't be calling this at all.  We removed
+   *        this flatten method, and stopped calling it in any spot where it would've been called.
+   
+    var flatten = function (obj, into, prefix) {
     into = into || {};
     prefix = prefix || '';
 
     _.each(obj, function(val, key) {
       if(obj.hasOwnProperty(key)) {
-        if (val && typeof val === 'object' && !(val instanceof Date || val instanceof RegExp)) {
+        if (val && typeof val === 'object' && !(val instanceof Date || val instanceof RegExp || val instanceof Array)) {
           flatten(val, into, prefix + key + '.');
         }
         else {
@@ -68,6 +76,8 @@ Backbone.Validation = (function(_){
 
     return into;
   };
+
+  */
 
   // Validation
   // ----------
@@ -148,10 +158,9 @@ Backbone.Validation = (function(_){
       var error,
           invalidAttrs = {},
           isValid = true,
-          computed = _.clone(attrs),
-          flattened = flatten(attrs);
+          computed = _.clone(attrs);
 
-      _.each(flattened, function(val, attr) {
+      _.each(attrs, function(val, attr) {
         error = validateAttr(model, attr, val, computed);
         if (error) {
           invalidAttrs[attr] = error;
@@ -179,14 +188,12 @@ Backbone.Validation = (function(_){
         // entire model is valid. Passing true will force a validation
         // of the model.
         isValid: function(option) {
-          var flattened = flatten(this.attributes);
-
           if(_.isString(option)){
-            return !validateAttr(this, option, flattened[option], _.extend({}, this.attributes));
+            return !validateAttr(this, option, this.attributes[option], _.extend({}, this.attributes));
           }
           if(_.isArray(option)){
             return _.reduce(option, function(memo, attr) {
-              return memo && !validateAttr(this, attr, flattened[attr], _.extend({}, this.attributes));
+              return memo && !validateAttr(this, attr, this.attributes[attr], _.extend({}, this.attributes));
             }, true, this);
           }
           if(option === true) {
@@ -204,8 +211,7 @@ Backbone.Validation = (function(_){
               opt = _.extend({}, options, setOptions),
               validatedAttrs = getValidatedAttrs(model),
               allAttrs = _.extend({}, validatedAttrs, model.attributes, attrs),
-              changedAttrs = flatten(attrs || allAttrs),
-
+              changedAttrs = attrs || allAttrs,
               result = validateModel(model, allAttrs);
 
           model._isValid = result.isValid;
